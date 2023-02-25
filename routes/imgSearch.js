@@ -10,6 +10,10 @@ const https = require("https");
 /** 刪除暫存資料夾內的所有檔案 */
 function deleteTempFiles() {
 	let directoryPath = `${path.dirname(__filename)}/../public/imgSearch`;
+	if (!fs.existsSync(directoryPath)) { //检查資料夾是否存在
+		console.log(`Directory ${directoryPath} not found`);
+		return;
+	}
 	fs.readdir(directoryPath, (err, files) => {
 		if (err) throw err;
 		for (const file of files) {
