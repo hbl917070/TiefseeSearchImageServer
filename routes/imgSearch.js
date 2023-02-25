@@ -7,12 +7,12 @@ const url = require("url");
 //-----------
 
 //避免同一個IP過度請求
-var ar_stop_ip = [];
+var arBlacklistIp = [];
 
-setInterval(func_timer_02, 1000 * 1800);//30分鐘清一次ip黑名單
-function func_timer_02() {
-	ar_stop_ip = [];
-}
+setInterval(() => {
+	arBlacklistIp = [];
+}, 1000 * 1800); //30分鐘清一次ip黑名單
+
 
 //-----------
 
@@ -33,13 +33,27 @@ app.get("/", (req, res, next) => {
 //上傳檔案
 app.post("/upload", (req, res, next) => {
 
-	//避免同一個IP過度請求
+
 	let ip = req.connection.remoteAddress;
+
+	/** json資料格式 */
+	function getErrJson(msg) {
+		console.log(msg + "：" + ip);
+		return {
+			status: 400,
+			success: false,
+			error: {
+				message: msg
+			}
+		}
+	}
+
+	//避免同一個IP過度請求
 	if (ip.indexOf("::ffff:") === 0) { ip = ip.substr(7); }
-	if (ar_stop_ip[ip] === undefined) { ar_stop_ip[ip] = 0; }
-	ar_stop_ip[ip] += 1;
-	if (ar_stop_ip[ip] > 600) {//半小時內超過600次
-		console.log("請求過度頻繁，禁止請求：" + ip);
+	if (arBlacklistIp[ip] === undefined) { arBlacklistIp[ip] = 0; }
+	arBlacklistIp[ip] += 1;
+	if (arBlacklistIp[ip] > 600) {//半小時內超過600次
+		console.log("請求太頻繁，禁止請求：" + ip);
 		return res.status(400).send(getErrJson("請求太頻繁"));
 	}
 
@@ -55,19 +69,19 @@ app.post("/upload", (req, res, next) => {
 		return res.status(400).send(getErrJson("未上傳圖片"));
 	}
 
-	let sampleFile = req.files.media;//取得欄位名稱為"media"的檔案
+	let sampleFile = req.files.media; //取得欄位名稱為"media"的檔案
 
 	if (sampleFile === undefined) {
 		return res.status(400).send(getErrJson("欄位錯誤"));
 	}
 
-	let fileSize = sampleFile.size / 1024;//檔案大小(k)
-	let fileType = sampleFile.mimetype;//檔案類型
-	let fileName = makeRandom(20) + ".jpg";//檔名
+	let fileSize = sampleFile.size / 1024; //檔案大小(k)
+	let fileType = sampleFile.mimetype; //檔案類型
+	let fileName = makeRandom(20) + ".jpg"; //檔名
 	let filePath = `${path.dirname(__filename)}/../public/imgSearch/${fileName}`;
-	let fileUrl = `${fullUrl(req)}/imgSearch/${fileName}`;//回傳的網址
+	let fileUrl = `${fullUrl(req)}/imgSearch/${fileName}`; //回傳的網址
 
-	if (fileSize > 2000) {//2000k
+	if (fileSize > 2000) { //2000k
 		return res.status(400).send(getErrJson("檔案過大"));
 	}
 	if (fileType.indexOf("image/") !== 0) {
@@ -108,24 +122,12 @@ module.exports = app;
  */
 function fullUrl(req) {
 	return url.format({
-		protocol: req.protocol,
+		protocol: req.headers["x-forwarded-proto"] || req.protocol,
 		host: req.get("host"),
 		//pathname: req.originalUrl
 	});
 }
 
-/**
- * json資料格式
- */
-function getErrJson(msg) {
-	return {
-		status: 400,
-		success: false,
-		error: {
-			message: msg
-		}
-	}
-}
 
 /**
  * 取得隨機亂數
@@ -133,11 +135,9 @@ function getErrJson(msg) {
  */
 function makeRandom(digits) {
 	let text = "";
-	//var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 	let possible = "abcdefghijkmnopqrstuvwxyz23456789";
-
-	for (let i = 0; i < digits; i++)
+	for (let i = 0; i < digits; i++) {
 		text += possible.charAt(Math.floor(Math.random() * possible.length));
-
+	}
 	return text;
 }
