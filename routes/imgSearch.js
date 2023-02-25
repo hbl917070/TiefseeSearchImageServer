@@ -4,9 +4,27 @@ const path = require("path");
 const fileUpload = require("express-fileupload");
 const url = require("url");
 const https = require("https");
+
 //-----------
 
-setInterval(() => { //每10分鐘請一次伺服器，避免進入休眠
+/** 刪除暫存資料夾內的所有檔案 */
+function deleteTempFiles() {
+	let directoryPath = `${path.dirname(__filename)}/../public/imgSearch`;
+	fs.readdir(directoryPath, (err, files) => {
+		if (err) throw err;
+		for (const file of files) {
+			fs.unlink(path.join(directoryPath, file), err => {
+				if (err) throw err;
+			});
+		}
+	});
+}
+
+deleteTempFiles();
+
+//-----------
+
+setInterval(() => { //每5分鐘請求一次自己，避免render伺服器進入休眠
 
 	const options = {
 		hostname: "tiefseesearchimageserver.onrender.com",
@@ -27,7 +45,7 @@ setInterval(() => { //每10分鐘請一次伺服器，避免進入休眠
 	});
 	req.end(); //結束請求
 
-}, 1000 * 300); 
+}, 1000 * 300);
 
 //-----------
 
@@ -37,7 +55,6 @@ var arBlacklistIp = [];
 setInterval(() => { //30分鐘清一次ip黑名單
 	arBlacklistIp = [];
 }, 1000 * 1800);
-
 
 //-----------
 
