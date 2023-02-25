@@ -3,15 +3,40 @@ const express = require("express");
 const path = require("path");
 const fileUpload = require("express-fileupload");
 const url = require("url");
+const https = require("https");
+//-----------
+
+setInterval(() => { //每10分鐘請一次伺服器，避免進入休眠
+
+	const options = {
+		hostname: "tiefseesearchimageserver.onrender.com",
+		path: "",
+		method: "GET"
+	};
+	const req = https.request(options, (res) => {
+		let data = ""; //宣告一個變數來儲存回應的text
+		res.on("data", (chunk) => { //監聽data事件，將回應的資料串接到變數中
+			data += chunk;
+		});
+		res.on("end", () => { //監聽end事件，表示回應已經結束，印出text
+			//console.log(data);
+		});
+	});
+	req.on("error", (error) => {
+		console.error(error);
+	});
+	req.end(); //結束請求
+
+}, 1000 * 300); 
 
 //-----------
 
 //避免同一個IP過度請求
 var arBlacklistIp = [];
 
-setInterval(() => {
+setInterval(() => { //30分鐘清一次ip黑名單
 	arBlacklistIp = [];
-}, 1000 * 1800); //30分鐘清一次ip黑名單
+}, 1000 * 1800);
 
 
 //-----------
@@ -32,7 +57,6 @@ app.get("/", (req, res, next) => {
 
 //上傳檔案
 app.post("/upload", (req, res, next) => {
-
 
 	let ip = req.connection.remoteAddress;
 
